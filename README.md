@@ -19,10 +19,12 @@ their configs from algosec.
 
 What is assumed?
 ----------------
-1.) Acess to the following linux binaries: perl (duh!), ssh/scp, svn,
-rsync, mkdir, rm
+1.) Acess to the following linux binaries: perl (duh!), ssh/scp, svn, rsync, mkdir, rm
+
 2.) You have dropped public ssh key under: $algosec_hostname:/root/.ssh/authorized_keys2
+
 You have dropped public ssh key under:$algosec_hostname:/home/afa/.ssh/authorized_keys2
+
 3.) You will add your environment variables in the '# START USER CONFIG' section
 
 
@@ -35,3 +37,11 @@ non-included Perl modules (currently 0)
 2.) The idea is that this will run on a cron.
 
 3.) The goal was to make this as simple and as functional as possible.
+
+
+
+Contact?
+--------
+If you need help setting this up or you find bugs, please feel free to
+contact me: ventz_petkov@harvard.edu (or just fork a copy and fix the
+issue :))
