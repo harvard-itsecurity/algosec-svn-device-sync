@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #############################################################################
-# Copyright (c) 2012, Harvard University IT Security - Ventz Petkov <ventz_petkov@harvard.edu>
+# Copyright (c) 2012-2013, Harvard University IT Security - Ventz Petkov <ventz_petkov@harvard.edu>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
 # By: Ventz Petkov (ventz_petkov@harvard.edu)
 # License: BSD 3
 # Date: 10-15-12
-# Last: 12-14-12
+# Last: 01-31-13
 # Comment: Pull network device configs from SVN, and push into algosec as though via GUI
 # Assumptions:
 #  Acess to the following linux binaries: perl (duh!), ssh/scp, svn, rsync, mkdir, rm
@@ -45,6 +45,7 @@ use Shell;
 # START USER CONFIG
 my $algosec_hostname = 'algosec01.domain.com';
 my $algosec_dir = '/usr/local/algosec_svn';
+my $priv_ssh_key = "$algosec_dir/algosec-id_dsa";
 my $firewall_configs_dir = "$algosec_dir/firewall";
 # NOTE: Checkout manually ONCE from SVN before this script and let SVN save the password
 my $svn_url = 'http://svn01.domain.com/configs/trunk/firewall';
@@ -63,13 +64,13 @@ my @svnout = `svn co --username $svn_user $svn_url`;
 
 # Sync over the configs first - most common scenario!
 chdir($firewall_configs_dir);
-`rsync -az -e ssh * afa\@$algosec_hostname:/home/afa/algosec/fwfiles/.`;
-`ssh root\@$algosec_hostname 'chown afa:afa /home/afa/algosec/fwfiles/*'`;
+`rsync -az -e 'ssh -i $priv_ssh_key' * afa\@$algosec_hostname:/home/afa/algosec/fwfiles/.`;
+`ssh -i $priv_ssh_key root\@$algosec_hostname 'chown afa:afa /home/afa/algosec/fwfiles/*'`;
 
 
 # Pull firewall analyzer config XML
 chdir($algosec_dir);
-`scp afa\@$algosec_hostname:/home/afa/.fa/firewall_data.xml .`;
+`scp -i $priv_ssh_key afa\@$algosec_hostname:/home/afa/.fa/firewall_data.xml .`;
 
 # For each Add or Delete from the SVN log, go through and make it "happen" on AlgoSec
 for my $line (@svnout) {
@@ -77,13 +78,13 @@ for my $line (@svnout) {
 		my $d = $1;
 		print "Adding Device: $d\n";
 		`/usr/bin/perl -p -i -e 's/<\\/FIREWALLS>/<FW_FILE name=\"$d\" display_name=\"$d\" path_name=\"\\/home\\/afa\\/algosec\\/fwfiles\\/$d\" created_by=\"webgui\" monitoring=\"no\" defined=\"true\"\\/>\n<\\/FIREWALLS>/g' firewall_data.xml`;
-		`ssh root\@$algosec_hostname '[ -d /home/afa/algosec/monitor/$d ] || /bin/mkdir /home/afa/algosec/monitor/$d && chown afa:afa /home/afa/algosec/monitor/$d'`;
+		`ssh -i $priv_ssh_key root\@$algosec_hostname '[ -d /home/afa/algosec/monitor/$d ] || /bin/mkdir /home/afa/algosec/monitor/$d && chown afa:afa /home/afa/algosec/monitor/$d'`;
 	}
 	elsif($line =~ /D    firewall\/(.*)/) {
 		my $d = $1;
 		print "Removing Device: $d\n";
 		`/usr/bin/perl -p -i -e 's/<FW_FILE name=\"$d\" display_name=\"$d\" path_name=\"\\/home\\/afa\\/algosec\\/fwfiles\\/$d\" created_by=\"webgui\" monitoring=\"no\" defined=\"true\"\\/>\n//g' firewall_data.xml`;
-		`ssh root\@$algosec_hostname '/bin/rm -Rf /home/afa/algosec/monitor/$d && /bin/rm -f /home/afa/algosec/fwfiles/$d'`;
+		`ssh -i $priv_ssh_key root\@$algosec_hostname '/bin/rm -Rf /home/afa/algosec/monitor/$d && /bin/rm -f /home/afa/algosec/fwfiles/$d'`;
 	}
 	elsif($line =~ /U    firewall\/(.*)/) {
 		my $d = $1;
@@ -93,8 +94,8 @@ for my $line (@svnout) {
 }
 
 # Push the Firewall Analyzer log back.
-`scp firewall_data.xml afa\@$algosec_hostname:/home/afa/.fa/.`;
-`ssh root\@$algosec_hostname 'chown afa:afa /home/afa/.fa/firewall_data.xml'`;
+`scp -i $priv_ssh_key firewall_data.xml afa\@$algosec_hostname:/home/afa/.fa/.`;
+`ssh -i $priv_ssh_key root\@$algosec_hostname 'chown afa:afa /home/afa/.fa/firewall_data.xml'`;
 unlink 'firewall_data.xml';
 
 1;
